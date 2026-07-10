@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+
 enum OrderStatus { pending, preparing, served, paid }
 
 extension OrderStatusX on OrderStatus {
@@ -18,10 +20,10 @@ extension OrderStatusX on OrderStatus {
   };
 
   Color get color => switch (this) {
-    OrderStatus.pending => const Color(0xFFB98900),
-    OrderStatus.preparing => const Color(0xFF2E6FDB),
-    OrderStatus.served => const Color(0xFF2E9E5B),
-    OrderStatus.paid => const Color(0xFF7C4FD0),
+    OrderStatus.pending => AppColors.statusPending,
+    OrderStatus.preparing => AppColors.statusPreparing,
+    OrderStatus.served => AppColors.statusServed,
+    OrderStatus.paid => AppColors.statusPaid,
   };
 
   static OrderStatus fromLabel(String? value) {

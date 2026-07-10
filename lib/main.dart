@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'screens/menu_screen.dart';
 import 'screens/orders_screen.dart';
+import 'theme/app_colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,24 +19,36 @@ class WaiterApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final seedColor = const Color(0xFFC1440E); // warm terracotta
-
     return MaterialApp(
       title: 'Waiter Order System',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
-        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
+        scaffoldBackgroundColor: AppColors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primaryBlue,
+          primary: AppColors.primaryBlue,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.background,
+          foregroundColor: Colors.black87,
+          centerTitle: false,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
         cardTheme: const CardThemeData(
           elevation: 0,
+          color: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(14)),
+            borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
         ),
         inputDecorationTheme: const InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Color(0xFFE5E7EB)),
           ),
         ),
       ),
@@ -54,26 +67,28 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
 
-  static const _titles = ['Menu', 'Orders'];
-
-  static const _screens = [MenuScreen(), OrdersScreen()];
+  static const _screens = [OrdersScreen(), MenuScreen()];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_titles[_selectedIndex])),
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primaryBlue,
+        unselectedItemColor: const Color(0xFF9CA3AF),
+        showUnselectedLabels: true,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu_rounded),
-            label: 'Menu',
+            icon: Icon(Icons.confirmation_number_outlined),
+            label: 'ORDERS',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_rounded),
-            label: 'Orders',
+            icon: Icon(Icons.menu_book_rounded),
+            label: 'MENU',
           ),
         ],
       ),

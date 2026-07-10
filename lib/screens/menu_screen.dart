@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../models/menu_item.dart';
 import '../services/firestore_refs.dart';
-import '../widgets/menu_item_dialog.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_constants.dart';
+import '../widgets/circle_icon_button.dart';
+import 'menu_item_form_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -14,7 +17,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   Future<void> _addItem() async {
-    final result = await showMenuItemDialog(context);
+    final result = await showMenuItemFormScreen(context);
     if (result == null) return;
     final doc = FirestoreRefs.menuItems.doc();
     await doc.set(
@@ -29,13 +32,15 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Future<void> _editItem(MenuItem item) async {
-    final result = await showMenuItemDialog(context, existing: item);
+    final result = await showMenuItemFormScreen(context, existing: item);
     if (result == null) return;
     await FirestoreRefs.menuItems.doc(item.id).set(result);
   }
 
-  Future<void> _toggleAvailability(MenuItem item, bool value) async {
-    await FirestoreRefs.menuItems.doc(item.id).update({'available': value});
+  Future<void> _toggleAvailability(MenuItem item) async {
+    await FirestoreRefs.menuItems.doc(item.id).update({
+      'available': !item.available,
+    });
   }
 
   Future<void> _deleteItem(MenuItem item) async {
@@ -67,6 +72,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: StreamBuilder<QuerySnapshot<MenuItem>>(
         stream: FirestoreRefs.menuItems.snapshots(),
         builder: (context, snapshot) {
@@ -82,46 +88,90 @@ class _MenuScreenState extends State<MenuScreen> {
               return byCategory != 0 ? byCategory : a.name.compareTo(b.name);
             });
 
-          if (items.isEmpty) {
-            return _EmptyState(onAdd: _addItem);
-          }
-
           final grouped = <String, List<MenuItem>>{};
           for (final item in items) {
             grouped.putIfAbsent(item.category, () => []).add(item);
           }
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-            children: [
-              for (final entry in grouped.entries) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
-                  child: Text(
-                    entry.key,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                sliver: SliverToBoxAdapter(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Menu',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${items.length} items · tap to toggle',
+                              style: const TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      CircleIconButton(
+                        icon: Icons.add_rounded,
+                        onPressed: _addItem,
+                        background: AppColors.primaryBlue,
+                        foreground: Colors.white,
+                        size: 48,
+                        tooltip: 'Add Item',
+                      ),
+                    ],
                   ),
                 ),
-                for (final item in entry.value)
-                  _MenuItemCard(
-                    item: item,
-                    onTap: () => _editItem(item),
-                    onToggleAvailable: (v) => _toggleAvailability(item, v),
-                    onDelete: () => _deleteItem(item),
+              ),
+              if (items.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _EmptyState(onAdd: _addItem),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  sliver: SliverList.list(
+                    children: [
+                      for (final entry in grouped.entries) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                          child: Text(
+                            entry.key.toUpperCase(),
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        for (final item in entry.value)
+                          _MenuItemCard(
+                            item: item,
+                            onToggleAvailable: () => _toggleAvailability(item),
+                            onEdit: () => _editItem(item),
+                            onDelete: () => _deleteItem(item),
+                          ),
+                      ],
+                    ],
                   ),
-              ],
+                ),
             ],
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addItem,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Item'),
       ),
     );
   }
@@ -130,53 +180,131 @@ class _MenuScreenState extends State<MenuScreen> {
 class _MenuItemCard extends StatelessWidget {
   const _MenuItemCard({
     required this.item,
-    required this.onTap,
     required this.onToggleAvailable,
+    required this.onEdit,
     required this.onDelete,
   });
 
   final MenuItem item;
-  final VoidCallback onTap;
-  final ValueChanged<bool> onToggleAvailable;
+  final VoidCallback onToggleAvailable;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
-        leading: CircleAvatar(
-          backgroundColor: item.available
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surfaceContainerHighest,
-          foregroundColor: item.available
-              ? theme.colorScheme.onPrimaryContainer
-              : theme.colorScheme.onSurfaceVariant,
-          child: Text(
-            item.name.isNotEmpty ? item.name[0].toUpperCase() : '?',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+    final dimmed = !item.available;
+    return Opacity(
+      opacity: dimmed ? 0.55 : 1,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        title: Text(
-          item.name,
-          style: TextStyle(
-            decoration: item.available ? null : TextDecoration.lineThrough,
-          ),
-        ),
-        subtitle: Text('\$${item.price.toStringAsFixed(2)}'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            Switch.adaptive(value: item.available, onChanged: onToggleAvailable),
-            IconButton(
-              icon: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.error),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        AppConstants.money(item.price),
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 13,
+                          fontFamily: AppConstants.monoFontFamily,
+                        ),
+                      ),
+                      const Text(
+                        ' · ',
+                        style: TextStyle(color: Color(0xFF6B7280)),
+                      ),
+                      Text(
+                        item.available ? 'Available' : 'Sold Out',
+                        style: TextStyle(
+                          color: item.available
+                              ? AppColors.availableGreen
+                              : const Color(0xFF6B7280),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            _AvailabilityDot(
+              available: item.available,
+              onTap: onToggleAvailable,
+            ),
+            const SizedBox(width: 10),
+            CircleIconButton(
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+              background: AppColors.editGreyBackground,
+              foreground: AppColors.editGrey,
+              tooltip: 'Edit',
+            ),
+            const SizedBox(width: 8),
+            CircleIconButton(
+              icon: Icons.delete_outline_rounded,
               onPressed: onDelete,
+              background: AppColors.deleteRedBackground,
+              foreground: AppColors.deleteRed,
               tooltip: 'Delete',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A tap-to-toggle round indicator: solid green when available, a pale
+/// outlined circle when sold out.
+class _AvailabilityDot extends StatelessWidget {
+  const _AvailabilityDot({required this.available, required this.onTap});
+
+  final bool available;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: available ? AppColors.availableGreen : Colors.transparent,
+            border: available
+                ? null
+                : Border.all(color: const Color(0xFFD1D5DB), width: 2),
+          ),
         ),
       ),
     );
@@ -194,21 +322,24 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.restaurant_menu_rounded,
             size: 64,
-            color: Theme.of(context).colorScheme.outline,
+            color: Color(0xFF9CA3AF),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'No menu items yet',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
           const Text('Add your first dish to get started.'),
           const SizedBox(height: 16),
           FilledButton.icon(
             onPressed: onAdd,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+            ),
             icon: const Icon(Icons.add_rounded),
             label: const Text('Add Item'),
           ),
