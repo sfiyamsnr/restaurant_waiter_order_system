@@ -1,88 +1,237 @@
 # Restaurant Waiter Order System
 
-A Flutter + Firebase (Firestore) CRUD app for a waiter to manage a restaurant
-menu and take customer orders. No login or registration — built as an
-individual test project.
+A Flutter and Firebase Firestore application for a restaurant waiter to
+manage menu items, take table orders, and track each order from Pending
+until Paid.
+
+The app is intentionally simple for assignment use:
+
+- No login
+- No registration
+- No authentication
+- No role management
+- The app opens directly to the Orders screen
 
 ## Features
 
-**Menu tab**
-- Live list of menu items grouped by category (Mains / Drinks / Desserts)
-- Add / edit items via a full-screen form (name, price, category, availability)
-- Tap-to-toggle availability, delete with confirmation
+### Menu management
 
-**Orders tab**
-- Live list of orders with a status filter (All / Pending / Preparing / Served / Paid) and counts
-- Each order card shows a live item summary, item count, and total
-- **New Order** flow: pick a table number, browse the menu by category, set
-  quantities, then place the order — creates the order and all its items together
-- **Order Detail**: a receipt-style view showing the itemized order, with
-  status-based actions (Mark as Preparing → Served → Paid) and the option to
-  cancel a still-pending order
+- Add new menu items
+- View menu items, grouped by category
+- Edit menu item details
+- Delete menu items
+- Toggle item availability
+- Store menu data in Firestore
 
-## Tech stack
+Menu item fields:
 
-- Flutter (Material 3), `setState`-based state management — no external state
-  management package
-- Firebase Firestore as the backend, via `firebase_core` + `cloud_firestore`
-- No authentication — the app is single-user by design
+- `id`
+- `name`
+- `price`
+- `category`
+- `available`
 
-## Firestore schema
+### Order management
 
-| Collection    | Fields                                                                 |
-|---------------|-------------------------------------------------------------------------|
-| `menu_items`  | `id`, `name`, `price` (double), `category`, `available` (bool)         |
-| `orders`      | `id`, `order_number` (int, auto-incrementing display number), `table_no`, `status` (Pending / Preparing / Served / Paid), `total` (double), `created_at` |
-| `order_items` | `id`, `order_id` (FK → orders), `menu_item_id` (FK → menu_items), `name_snapshot`, `price_snapshot`, `quantity` |
+- Create new table orders
+- Select a table number
+- Add menu items to the order and set quantities
+- View the subtotal and total live as items are selected
+- Save the order and its order items to Firestore together when placed
+- Cancel a Pending order
+- View order details (receipt-style)
+- Move orders through the required lifecycle
 
-One order has many order items. Item name/price are snapshotted at order time
-so historical orders stay accurate even if a menu item's price changes later.
+Order status lifecycle:
 
-A small `meta/counters` document tracks the next `order_number`, incremented
-inside the same transaction that creates an order.
+```
+Pending -> Preparing -> Served -> Paid
+```
+
+Only the next valid status is allowed, one step at a time. Paid orders show
+"Order Closed" and have no further action.
+
+Note: order items are chosen upfront when the order is placed and are not
+editable afterward. Order Detail is used for tracking status and cancelling
+a Pending order, not for adding or removing items after the fact.
+
+### Table handling
+
+- Every order is assigned to a table number, entered when placing the order.
+- The app does not currently prevent multiple active orders being placed
+  against the same table number — this would be a reasonable follow-up
+  improvement if needed.
+
+## Technology used
+
+- Dart
+- Flutter
+- Material 3
+- Firebase Core
+- Cloud Firestore
+- `setState` for local UI state
+
+Main dependencies:
+
+- `firebase_core`
+- `cloud_firestore`
+
+## Firestore collections
+
+The app uses three top-level Firestore collections, plus one small counter
+document.
+
+### menu_items
+
+Stores restaurant menu items.
+
+| Field | Description |
+|-------|-------------|
+| `id` | Document ID, mirrored into the document |
+| `name` | Menu item name |
+| `price` | Item price |
+| `category` | Item category (Mains / Drinks / Desserts) |
+| `available` | Whether the item can currently be ordered |
+
+### orders
+
+Stores the parent order record.
+
+| Field | Description |
+|-------|-------------|
+| `id` | Document ID, mirrored into the document |
+| `order_number` | Auto-incrementing display number (e.g. `#0842`) |
+| `table_no` | Restaurant table number |
+| `status` | Pending / Preparing / Served / Paid |
+| `total` | Order total |
+| `created_at` | Created timestamp |
+
+### order_items
+
+Stores line items linked to an order.
+
+| Field | Description |
+|-------|-------------|
+| `id` | Document ID, mirrored into the document |
+| `order_id` | Parent order document ID |
+| `menu_item_id` | Menu item document ID |
+| `name_snapshot` | Item name at the time of ordering |
+| `price_snapshot` | Item price at the time of ordering |
+| `quantity` | Ordered quantity |
+
+`name_snapshot` and `price_snapshot` keep old orders correct even if a menu
+item is later edited or deleted.
+
+A `meta/counters` document tracks the next `order_number`, incremented
+inside the same transaction that creates an order and its order items.
+
+## Main screens
+
+The app includes the required screens:
+
+- Orders List
+- New Order
+- Order Detail
+- Menu List
+- Add/Edit Menu Item (one screen, used for both)
+
+The home screen provides bottom navigation between:
+
+- Orders
+- Menu
 
 ## Project structure
 
 ```
 lib/
-  main.dart                     # app entry point, theme, bottom nav shell
-  firebase_options.dart         # generated by `flutterfire configure`
-  models/                       # MenuItem, Order, OrderItem, OrderStatus
-  services/
-    firestore_refs.dart         # typed collection refs + order placement/cancel logic
-  screens/
-    menu_screen.dart
-    menu_item_form_screen.dart
-    orders_screen.dart
-    new_order_screen.dart
-    order_detail_screen.dart
-  theme/                        # design system colors + shared constants
-  widgets/                      # small reusable UI pieces (steppers, tabs, etc.)
+|-- main.dart              # app entry point, theme, bottom nav shell
+|-- firebase_options.dart  # generated by `flutterfire configure`
+|-- models/                # MenuItem, Order, OrderItem, OrderStatus
+|-- screens/                # Orders, New Order, Order Detail, Menu, Add/Edit Item
+|-- services/               # Firestore collection refs, order placement/cancel logic
+|-- theme/                  # design system colors + shared constants
+`-- widgets/                # small reusable UI pieces (steppers, tabs, etc.)
 ```
 
-## Setup
+## Firebase setup
 
-1. Install dependencies:
-   ```
-   flutter pub get
-   ```
-2. This project is already wired to a Firebase project via `flutterfire configure`
-   (see `lib/firebase_options.dart`). To point it at your own Firebase project
-   instead:
-   ```
-   npm install -g firebase-tools
-   dart pub global activate flutterfire_cli
-   firebase login
-   flutterfire configure
-   ```
-3. Make sure Firestore is enabled on the Firebase project (test mode is fine
-   for local development).
+Firebase is initialized in `main.dart` before `runApp()`:
 
-## Running
+```dart
+await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
+```
+
+The project includes `lib/firebase_options.dart`, generated by the
+FlutterFire CLI for the **Web** platform only. Android/iOS/desktop have not
+been configured — running `flutterfire configure` again and selecting
+those platforms would be needed before building for them.
+
+## Firestore classroom-use note
+
+This assignment intentionally has no login, authentication, or role
+management because the only app user is a waiter.
+
+The project currently runs on Firestore test-mode/open rules, which is
+suitable only for classroom development and testing. Do not deploy the app
+unchanged for a real restaurant system without adding proper Firebase
+security rules and authentication.
+
+## How to run
+
+Install dependencies:
+
+```
+flutter pub get
+```
+
+Run on Chrome (the platform this project is configured for):
 
 ```
 flutter run -d chrome
 ```
 
-Swap `-d chrome` for another device id (see `flutter devices`) to run on
-Android, iOS, or desktop instead.
+## Verification commands
+
+Format the project:
+
+```
+dart format .
+```
+
+Analyze the project:
+
+```
+flutter analyze
+```
+
+Run tests:
+
+```
+flutter test
+```
+
+Current verified result:
+
+```
+flutter test
+2 tests passed
+
+flutter analyze
+No issues found
+```
+
+## Notes for submission
+
+Before creating the final ZIP file, exclude generated or temporary
+files/folders such as:
+
+```
+build/
+.dart_tool/
+.idea/
+```
+
+Also include the required assignment report separately, or as instructed
+by the lecturer.
