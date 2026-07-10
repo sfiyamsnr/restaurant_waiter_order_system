@@ -222,14 +222,6 @@ flutter analyze
 No issues found
 ```
 
-## Notes for submission
-
-Before creating the final ZIP file, exclude generated or temporary
-files/folders such as:
-
-```
-build/
-.dart_tool/
 .idea/
 ```
 
