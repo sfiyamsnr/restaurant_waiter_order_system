@@ -36,18 +36,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Future<void> _placeOrder() async {
     if (_totalItems == 0 || _placing) return;
     setState(() => _placing = true);
-    final drafts = _quantities.entries
-        .where((e) => e.value > 0)
-        .map((e) {
-          final item = _itemsById[e.key]!;
-          return OrderDraftItem(
-            menuItemId: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: e.value,
-          );
-        })
-        .toList();
+    final drafts = _quantities.entries.where((e) => e.value > 0).map((e) {
+      final item = _itemsById[e.key]!;
+      return OrderDraftItem(
+        menuItemId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: e.value,
+      );
+    }).toList();
     await FirestoreRefs.placeOrder(tableNo: _tableNo, items: drafts);
     if (!mounted) return;
     Navigator.of(context).pop();
@@ -270,7 +267,10 @@ class _Footer extends StatelessWidget {
                 ),
                 child: const Text(
                   'PLACE ORDER',
-                  style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ),

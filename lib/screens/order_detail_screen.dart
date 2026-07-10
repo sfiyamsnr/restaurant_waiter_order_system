@@ -7,6 +7,8 @@ import '../models/order_status.dart';
 import '../services/firestore_refs.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
+import '../widgets/add_order_item_dialog.dart';
+import '../widgets/quantity_stepper.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   const OrderDetailScreen({super.key, required this.orderId});
@@ -28,6 +30,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
+  Future<void> _addItem() async {
+    final selection = await showAddOrderItemDialog(context);
+    if (selection == null) return;
+    final doc = FirestoreRefs.orderItems.doc();
+    await doc.set(
+      OrderItem(
+        id: doc.id,
+        orderId: widget.orderId,
+        menuItemId: selection.menuItem.id,
+        nameSnapshot: selection.menuItem.name,
+        priceSnapshot: selection.menuItem.price,
+        quantity: selection.quantity,
+      ),
+    );
+    await FirestoreRefs.recalculateOrderTotal(widget.orderId);
+  }
+
+  Future<void> _updateQuantity(OrderItem item, int newQuantity) async {
+    if (newQuantity <= 0) {
+      await FirestoreRefs.orderItems.doc(item.id).delete();
+    } else {
+      await FirestoreRefs.orderItems.doc(item.id).update({
+        'quantity': newQuantity,
+      });
+    }
+    await FirestoreRefs.recalculateOrderTotal(widget.orderId);
+  }
+
   Future<void> _cancelOrder() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -41,9 +71,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              foregroundColor: AppColors.deleteRed,
-            ),
+            style: FilledButton.styleFrom(foregroundColor: AppColors.deleteRed),
             child: const Text('Cancel Order'),
           ),
         ],
@@ -81,12 +109,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           return SafeArea(
             child: Column(
               children: [
-                _TopBar(order: order, onBack: () => Navigator.of(context).pop()),
+                _TopBar(
+                  order: order,
+                  onBack: () => Navigator.of(context).pop(),
+                ),
                 Container(height: 3, color: AppColors.primaryBlue),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
-                    child: _ReceiptCard(order: order),
+                    child: _ReceiptCard(
+                      order: order,
+                      editable: order.status == OrderStatus.pending,
+                      onAddItem: _addItem,
+                      onUpdateQuantity: _updateQuantity,
+                    ),
                   ),
                 ),
                 _BottomActions(
@@ -197,9 +233,17 @@ class _TopBar extends StatelessWidget {
 }
 
 class _ReceiptCard extends StatelessWidget {
-  const _ReceiptCard({required this.order});
+  const _ReceiptCard({
+    required this.order,
+    required this.editable,
+    required this.onAddItem,
+    required this.onUpdateQuantity,
+  });
 
   final Order order;
+  final bool editable;
+  final VoidCallback onAddItem;
+  final void Function(OrderItem item, int newQuantity) onUpdateQuantity;
 
   @override
   Widget build(BuildContext context) {
@@ -252,25 +296,82 @@ class _ReceiptCard extends StatelessWidget {
                   for (final item in items)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${item.quantity}× ${item.nameSnapshot}',
-                              style: const TextStyle(
-                                color: Color(0xFF374151),
-                                fontSize: 14,
+                      child: editable
+                          ? Row(
+                              children: [
+                                QuantityStepper(
+                                  value: item.quantity,
+                                  onChanged: (v) => onUpdateQuantity(item, v),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    item.nameSnapshot,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0xFF374151),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  item.subtotal.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                    fontFamily: AppConstants.monoFontFamily,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item.quantity}× ${item.nameSnapshot}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF374151),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  item.subtotal.toStringAsFixed(2),
+                                  style: const TextStyle(
+                                    fontFamily: AppConstants.monoFontFamily,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  if (editable)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 4),
+                      child: InkWell(
+                        onTap: onAddItem,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.add_circle_outline_rounded,
+                                size: 18,
+                                color: AppColors.primaryBlue,
                               ),
-                            ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Add Item',
+                                style: TextStyle(
+                                  color: AppColors.primaryBlue,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            item.subtotal.toStringAsFixed(2),
-                            style: const TextStyle(
-                              fontFamily: AppConstants.monoFontFamily,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                 ],

@@ -220,8 +220,22 @@ class _AvailabilityToggle extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _segment(context, 'Available', value == true, () => onChanged(true))),
-          Expanded(child: _segment(context, 'Sold Out', value == false, () => onChanged(false))),
+          Expanded(
+            child: _segment(
+              context,
+              'Available',
+              value == true,
+              () => onChanged(true),
+            ),
+          ),
+          Expanded(
+            child: _segment(
+              context,
+              'Sold Out',
+              value == false,
+              () => onChanged(false),
+            ),
+          ),
         ],
       ),
     );

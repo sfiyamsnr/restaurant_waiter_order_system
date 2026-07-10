@@ -73,105 +73,108 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: StreamBuilder<QuerySnapshot<MenuItem>>(
-        stream: FirestoreRefs.menuItems.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final items = snapshot.data!.docs.map((d) => d.data()).toList()
-            ..sort((a, b) {
-              final byCategory = a.category.compareTo(b.category);
-              return byCategory != 0 ? byCategory : a.name.compareTo(b.name);
-            });
+      body: SafeArea(
+        child: StreamBuilder<QuerySnapshot<MenuItem>>(
+          stream: FirestoreRefs.menuItems.snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final items = snapshot.data!.docs.map((d) => d.data()).toList()
+              ..sort((a, b) {
+                final byCategory = a.category.compareTo(b.category);
+                return byCategory != 0 ? byCategory : a.name.compareTo(b.name);
+              });
 
-          final grouped = <String, List<MenuItem>>{};
-          for (final item in items) {
-            grouped.putIfAbsent(item.category, () => []).add(item);
-          }
+            final grouped = <String, List<MenuItem>>{};
+            for (final item in items) {
+              grouped.putIfAbsent(item.category, () => []).add(item);
+            }
 
-          return CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                sliver: SliverToBoxAdapter(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Menu',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
+            return CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Menu',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${items.length} items · tap to toggle',
+                              const SizedBox(height: 2),
+                              Text(
+                                '${items.length} items · tap to toggle',
+                                style: const TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        CircleIconButton(
+                          icon: Icons.add_rounded,
+                          onPressed: _addItem,
+                          background: AppColors.primaryBlue,
+                          foreground: Colors.white,
+                          size: 48,
+                          tooltip: 'Add Item',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (items.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyState(onAdd: _addItem),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    sliver: SliverList.list(
+                      children: [
+                        for (final entry in grouped.entries) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+                            child: Text(
+                              entry.key.toUpperCase(),
                               style: const TextStyle(
                                 color: Color(0xFF6B7280),
-                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                letterSpacing: 0.8,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      CircleIconButton(
-                        icon: Icons.add_rounded,
-                        onPressed: _addItem,
-                        background: AppColors.primaryBlue,
-                        foreground: Colors.white,
-                        size: 48,
-                        tooltip: 'Add Item',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (items.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyState(onAdd: _addItem),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  sliver: SliverList.list(
-                    children: [
-                      for (final entry in grouped.entries) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-                          child: Text(
-                            entry.key.toUpperCase(),
-                            style: const TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              letterSpacing: 0.8,
+                          ),
+                          for (final item in entry.value)
+                            _MenuItemCard(
+                              item: item,
+                              onToggleAvailable: () =>
+                                  _toggleAvailability(item),
+                              onEdit: () => _editItem(item),
+                              onDelete: () => _deleteItem(item),
                             ),
-                          ),
-                        ),
-                        for (final item in entry.value)
-                          _MenuItemCard(
-                            item: item,
-                            onToggleAvailable: () => _toggleAvailability(item),
-                            onEdit: () => _editItem(item),
-                            onDelete: () => _deleteItem(item),
-                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -69,7 +69,9 @@ class _Chevron extends StatelessWidget {
       child: Icon(
         icon,
         size: 18,
-        color: onTap == null ? const Color(0xFFB0B5BD) : const Color(0xFF6B7280),
+        color: onTap == null
+            ? const Color(0xFFB0B5BD)
+            : const Color(0xFF6B7280),
       ),
     );
   }

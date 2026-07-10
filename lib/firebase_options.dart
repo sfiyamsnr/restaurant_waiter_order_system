@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for ios - '
@@ -58,6 +55,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '477924282989',
     projectId: 'restaurant-waiter-order-f17a2',
     authDomain: 'restaurant-waiter-order-f17a2.firebaseapp.com',
+    storageBucket: 'restaurant-waiter-order-f17a2.firebasestorage.app',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDJCovgJtzsetxmRfoV0xmg0fO_7Wn8spk',
+    appId: '1:477924282989:android:f0fcfad49758bfca45a564',
+    messagingSenderId: '477924282989',
+    projectId: 'restaurant-waiter-order-f17a2',
     storageBucket: 'restaurant-waiter-order-f17a2.firebasestorage.app',
   );
 }

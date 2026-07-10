@@ -171,11 +171,11 @@ class _FilterPills extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
         children: [
           _Pill(
             label: 'All',
@@ -184,8 +184,7 @@ class _FilterPills extends StatelessWidget {
             color: AppColors.primaryBlue,
             onTap: () => onSelect(null),
           ),
-          for (final status in OrderStatus.values) ...[
-            const SizedBox(width: 8),
+          for (final status in OrderStatus.values)
             _Pill(
               label: status.label,
               count: counts[status] ?? 0,
@@ -193,7 +192,6 @@ class _FilterPills extends StatelessWidget {
               color: AppColors.primaryBlue,
               onTap: () => onSelect(status),
             ),
-          ],
         ],
       ),
     );
@@ -220,20 +218,18 @@ class _Pill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? color : Colors.white,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? color : const Color(0xFFE5E7EB),
-          ),
+          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB)),
         ),
         child: Text(
           '$label ($count)',
           style: TextStyle(
             color: selected ? Colors.white : const Color(0xFF6B7280),
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            fontSize: 12,
           ),
         ),
       ),
@@ -303,9 +299,8 @@ class _OrderCard extends StatelessWidget {
                   .where('order_id', isEqualTo: order.id)
                   .snapshots(),
               builder: (context, snapshot) {
-                final items = snapshot.data?.docs
-                        .map((d) => d.data())
-                        .toList() ??
+                final items =
+                    snapshot.data?.docs.map((d) => d.data()).toList() ??
                     const <OrderItem>[];
                 final summary = items
                     .map((i) => '${i.quantity}× ${i.nameSnapshot}')

@@ -73,7 +73,8 @@ class FirestoreRefs {
     final orderDoc = orders.doc();
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final counterSnap = await tx.get(_orderCounter);
-      final nextNumber = ((counterSnap.data()?['orders'] as num?)?.toInt() ?? 0) + 1;
+      final nextNumber =
+          ((counterSnap.data()?['orders'] as num?)?.toInt() ?? 0) + 1;
       tx.set(_orderCounter, {'orders': nextNumber}, SetOptions(merge: true));
 
       final total = items.fold<double>(

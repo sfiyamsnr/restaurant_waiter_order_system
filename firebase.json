@@ -1,1 +1,1 @@
-{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"restaurant-waiter-order-f17a2","configurations":{"web":"1:477924282989:web:42639bebfde20a1d45a564"}}}}}}
+{"flutter":{"platforms":{"dart":{"lib/firebase_options.dart":{"projectId":"restaurant-waiter-order-f17a2","configurations":{"android":"1:477924282989:android:f0fcfad49758bfca45a564"}}},"android":{"default":{"projectId":"restaurant-waiter-order-f17a2","appId":"1:477924282989:android:f0fcfad49758bfca45a564","fileOutput":"android/app/google-services.json"}}}}}
