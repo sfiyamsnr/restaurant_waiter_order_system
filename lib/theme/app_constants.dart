@@ -4,7 +4,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const restaurantName = 'Kopitiam Kita';
+  static const restaurantName = 'Secawan';
   static const waiterInitials = 'W1';
 
   static const monoFontFamily = 'monospace';
