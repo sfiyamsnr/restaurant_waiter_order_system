@@ -1,30 +1,24 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:restaurant_waiter_order_system/main.dart';
+import 'package:restaurant_waiter_order_system/models/order_item.dart';
+import 'package:restaurant_waiter_order_system/models/order_status.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('OrderItem.subtotal multiplies price by quantity', () {
+    const item = OrderItem(
+      id: 'item1',
+      orderId: 'order1',
+      menuItemId: 'menu1',
+      nameSnapshot: 'Burger',
+      priceSnapshot: 9.5,
+      quantity: 3,
+    );
+    expect(item.subtotal, 28.5);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('OrderStatusX.fromLabel parses known labels and defaults to pending', () {
+    expect(OrderStatusX.fromLabel('Preparing'), OrderStatus.preparing);
+    expect(OrderStatusX.fromLabel('Paid'), OrderStatus.paid);
+    expect(OrderStatusX.fromLabel('unknown'), OrderStatus.pending);
+    expect(OrderStatusX.fromLabel(null), OrderStatus.pending);
   });
 }
